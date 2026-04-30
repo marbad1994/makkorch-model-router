@@ -60,6 +60,12 @@ The router is not just a proxy. It is a decision layer between your coding clien
 
 ---
 
+## Compatible Providers
+
+- nvidia both old & new api
+- antrohpic through bedrock or direct
+- lmstudio
+
 ## Primary Client: Codemakk
 
 `orchmakk-model-router` is designed to pair with Codemakk.
@@ -933,4 +939,4 @@ Planned improvements:
 
 ## License
 
-Private/internal project unless otherwise specified.
+MIT Liecense
