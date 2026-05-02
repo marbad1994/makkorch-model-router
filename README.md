@@ -1,4 +1,4 @@
-# orchmakk-model-router
+# makkorch-model-router
 
 A local model orchestration router for Codemakk and OpenAI-compatible coding clients.
 
