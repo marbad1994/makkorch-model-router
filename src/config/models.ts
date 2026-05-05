@@ -20,10 +20,21 @@ export const MODELS = {
   claudeOpus: requiredEnv("CLAUDE_OPUS"),
 
   deepseekFlash: requiredEnv("NVIDIA_DEEPSEEK_FLASH"),
+<<<<<<< HEAD
+=======
+  minimax: requiredEnv("NVIDIA_MINIMAX"),
+>>>>>>> c6972ae (init commit)
   deepseekPro: requiredEnv("NVIDIA_DEEPSEEK_PRO"),
   glm47: requiredEnv("NVIDIA_GLM47"),
   qwen3Coder: requiredEnv("NVIDIA_QWEN3"),
   stepFlash: requiredEnv("NVIDIA_STEP_FLASH"),
   mistralMedium: requiredEnv("NVIDIA_MISTRAL_MEDIUM"),
+<<<<<<< HEAD
   mistralLarge: requiredEnv("NVIDIA_MISTRAL_LARGE")
+=======
+  mistralLarge: requiredEnv("NVIDIA_MISTRAL_LARGE"),
+  
+
+  gpt55: envOrDefault("CODEX_MODEL", "gpt-5.5")
+>>>>>>> c6972ae (init commit)
 };

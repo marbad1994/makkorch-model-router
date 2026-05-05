@@ -228,11 +228,15 @@ export async function* sanitizeAssistantStream<T extends StreamChunkLike>(
     return;
   }
 
+<<<<<<< HEAD
   if (
     suspectedLeak ||
     looksLikeReasoningLeak(buffer) ||
     extractAfterFinalMarker(buffer)
   ) {
+=======
+  if (suspectedLeak || looksLikeReasoningLeak(buffer) || extractAfterFinalMarker(buffer)) {
+>>>>>>> c6972ae (init commit)
     const cleaned = sanitizeAssistantContent(buffer, messages);
 
     if (cleaned) {

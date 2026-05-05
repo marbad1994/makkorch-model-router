@@ -15,7 +15,14 @@ export interface ChatResponse {
   raw?: unknown;
 }
 
+<<<<<<< HEAD
 export type ChatStreamChunkKind = "content" | "thinking" | "event";
+=======
+export type ChatStreamChunkKind =
+  | "content"
+  | "thinking"
+  | "event";
+>>>>>>> c6972ae (init commit)
 
 export interface ChatStreamChunk {
   content: string;

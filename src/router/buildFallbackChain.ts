@@ -26,4 +26,8 @@ export function buildFallbackChain(
   }
 
   return chain;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c6972ae (init commit)

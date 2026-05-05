@@ -3,9 +3,21 @@ import path from "node:path";
 import crypto from "node:crypto";
 import type { NormalizedTokenUsage } from "../router/tokenUsage";
 
+<<<<<<< HEAD
 export type ModelRunStatus = "success" | "failed" | "rejected" | "suspicious";
 
 export type ModelRunMode = "chat" | "stream";
+=======
+export type ModelRunStatus =
+  | "success"
+  | "failed"
+  | "rejected"
+  | "suspicious";
+
+export type ModelRunMode =
+  | "chat"
+  | "stream";
+>>>>>>> c6972ae (init commit)
 
 export type ModelRunRecord = {
   id: string;
@@ -57,7 +69,15 @@ export async function logModelRun(
 
   await ensureLedgerDir();
 
+<<<<<<< HEAD
   await fs.appendFile(ledgerPath(), `${JSON.stringify(fullRecord)}\n`, "utf8");
+=======
+  await fs.appendFile(
+    ledgerPath(),
+    `${JSON.stringify(fullRecord)}\n`,
+    "utf8"
+  );
+>>>>>>> c6972ae (init commit)
 
   return fullRecord;
 }
@@ -73,4 +93,8 @@ export async function logModelRunSafely(
       error instanceof Error ? error.message : String(error)
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> c6972ae (init commit)

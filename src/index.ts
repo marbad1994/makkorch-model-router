@@ -85,10 +85,17 @@ app.post("/v1/chat/completions", async (req, res) => {
         object: "chat.completion",
         created: Math.floor(Date.now() / 1000),
         model: execution.usedModel,
+<<<<<<< HEAD
         router: {
           requestedModel: req.body.model,
           usedModel: execution.usedModel
         },
+=======
+router: {
+  requestedModel: req.body.model,
+  usedModel: execution.usedModel
+},
+>>>>>>> c6972ae (init commit)
         choices: [
           {
             index: 0,
@@ -158,6 +165,7 @@ app.post("/v1/chat/completions", async (req, res) => {
     }
 
     writeSse(res, {
+<<<<<<< HEAD
       id: createChatCompletionId(),
       object: "chat.completion.chunk",
       created: Math.floor(Date.now() / 1000),
@@ -174,6 +182,24 @@ app.post("/v1/chat/completions", async (req, res) => {
         }
       ]
     });
+=======
+  id: createChatCompletionId(),
+  object: "chat.completion.chunk",
+  created: Math.floor(Date.now() / 1000),
+  model: usedModel ?? req.body.model,
+  router: {
+    requestedModel: req.body.model,
+    usedModel
+  },
+  choices: [
+    {
+      index: 0,
+      delta: {},
+      finish_reason: "stop"
+    }
+  ]
+});
+>>>>>>> c6972ae (init commit)
 
     res.write("data: [DONE]\n\n");
     res.end();
@@ -183,7 +209,14 @@ app.post("/v1/chat/completions", async (req, res) => {
     if (res.headersSent) {
       writeSse(res, {
         error: {
+<<<<<<< HEAD
           message: err instanceof Error ? err.message : "Unknown router stream error",
+=======
+          message:
+            err instanceof Error
+              ? err.message
+              : "Unknown router stream error",
+>>>>>>> c6972ae (init commit)
           type: "router_error"
         }
       });
@@ -195,7 +228,14 @@ app.post("/v1/chat/completions", async (req, res) => {
 
     res.status(500).json({
       error: {
+<<<<<<< HEAD
         message: err instanceof Error ? err.message : "Unknown router error",
+=======
+        message:
+          err instanceof Error
+            ? err.message
+            : "Unknown router error",
+>>>>>>> c6972ae (init commit)
         type: "router_error"
       }
     });

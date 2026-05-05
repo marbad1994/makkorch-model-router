@@ -1,5 +1,12 @@
 import { REGISTRY } from "../config/registry";
+<<<<<<< HEAD
 import { recordFailure, recordSuccess } from "../storage/modelPerformance";
+=======
+import {
+  recordFailure,
+  recordSuccess
+} from "../storage/modelPerformance";
+>>>>>>> c6972ae (init commit)
 import { logModelRunSafely } from "../storage/modelRunLedger";
 import {
   addTaskContextNote,
@@ -188,7 +195,13 @@ function getStreamThinkingIdleTimeoutForModel(modelKey: string): number {
   const modelTimeout = process.env[modelEnvKey];
   const providerTimeout = process.env[providerEnvKey];
 
+<<<<<<< HEAD
   const defaultTimeout = process.env.STREAM_THINKING_IDLE_TIMEOUT_MS ?? "120000";
+=======
+  const defaultTimeout =
+    process.env.STREAM_THINKING_IDLE_TIMEOUT_MS ??
+    "120000";
+>>>>>>> c6972ae (init commit)
 
   return Number(modelTimeout ?? providerTimeout ?? defaultTimeout);
 }
@@ -281,7 +294,14 @@ function buildAttemptMessages(
     return baseMessages;
   }
 
+<<<<<<< HEAD
   return [buildTaskHandoffMessage(context), ...baseMessages];
+=======
+  return [
+    buildTaskHandoffMessage(context),
+    ...baseMessages
+  ];
+>>>>>>> c6972ae (init commit)
 }
 
 async function appendOutputSafely(
@@ -355,7 +375,15 @@ async function logRun(args: {
   });
 }
 
+<<<<<<< HEAD
 export async function executeChain(chain: string[], messages: any[], taskType: string) {
+=======
+export async function executeChain(
+  chain: string[],
+  messages: any[],
+  taskType: string
+) {
+>>>>>>> c6972ae (init commit)
   let lastError: unknown;
 
   const attemptedModels = new Set<string>();
@@ -388,9 +416,22 @@ export async function executeChain(chain: string[], messages: any[], taskType: s
         `Trying model: ${modelKey} (timeout: ${timeoutMs}ms, context: ${context.requestId})`
       );
 
+<<<<<<< HEAD
       const attemptMessages = buildAttemptMessages(messages, context, attemptIndex);
 
       const optimizedMessages = optimizeMessagesForModel(modelKey, attemptMessages);
+=======
+      const attemptMessages = buildAttemptMessages(
+        messages,
+        context,
+        attemptIndex
+      );
+
+      const optimizedMessages = optimizeMessagesForModel(
+        modelKey,
+        attemptMessages
+      );
+>>>>>>> c6972ae (init commit)
 
       const result = await withTimeout(
         executeModel(modelKey as any, optimizedMessages),
@@ -404,7 +445,13 @@ export async function executeChain(chain: string[], messages: any[], taskType: s
       let verdict = judgeResult(promptText, result.content);
 
       if (!verdict.pass && shouldAttemptStreamingRepair(verdict.reason)) {
+<<<<<<< HEAD
         console.warn(`Model output needs repair: ${modelKey} — ${verdict.reason}`);
+=======
+        console.warn(
+          `Model output needs repair: ${modelKey} — ${verdict.reason}`
+        );
+>>>>>>> c6972ae (init commit)
 
         await addTaskContextNote(
           context,
@@ -439,7 +486,13 @@ export async function executeChain(chain: string[], messages: any[], taskType: s
       }
 
       if (!verdict.pass) {
+<<<<<<< HEAD
         console.warn(`Model rejected by judge: ${modelKey} — ${verdict.reason}`);
+=======
+        console.warn(
+          `Model rejected by judge: ${modelKey} — ${verdict.reason}`
+        );
+>>>>>>> c6972ae (init commit)
 
         await completeAttemptSafely(
           context,
@@ -492,7 +545,16 @@ export async function executeChain(chain: string[], messages: any[], taskType: s
 
       console.warn(`Model failed: ${modelKey}`, message);
 
+<<<<<<< HEAD
       await completeAttemptSafely(context, attempt.attemptId, "failed", message);
+=======
+      await completeAttemptSafely(
+        context,
+        attempt.attemptId,
+        "failed",
+        message
+      );
+>>>>>>> c6972ae (init commit)
 
       await logRun({
         requestId: context.requestId,
@@ -515,7 +577,13 @@ export async function executeChain(chain: string[], messages: any[], taskType: s
 
   throw new Error(
     `All fallback models failed. Last error: ${
+<<<<<<< HEAD
       lastError instanceof Error ? lastError.message : String(lastError)
+=======
+      lastError instanceof Error
+        ? lastError.message
+        : String(lastError)
+>>>>>>> c6972ae (init commit)
     }`
   );
 }
@@ -564,9 +632,22 @@ export async function* executeChainStream(
         `Trying streaming model: ${modelKey} (idle timeout: ${normalIdleTimeoutMs}ms, thinking idle timeout: ${thinkingIdleTimeoutMs}ms, context: ${context.requestId})`
       );
 
+<<<<<<< HEAD
       const attemptMessages = buildAttemptMessages(messages, context, attemptIndex);
 
       const optimizedMessages = optimizeMessagesForModel(modelKey, attemptMessages);
+=======
+      const attemptMessages = buildAttemptMessages(
+        messages,
+        context,
+        attemptIndex
+      );
+
+      const optimizedMessages = optimizeMessagesForModel(
+        modelKey,
+        attemptMessages
+      );
+>>>>>>> c6972ae (init commit)
 
       const stream = withAdaptiveStreamIdleTimeout(
         executeModelStream(modelKey as any, optimizedMessages),
@@ -689,10 +770,22 @@ export async function* executeChainStream(
           repairCollected += chunk.content;
         }
 
+<<<<<<< HEAD
         const continuation = removeLikelyRepeatedPrefix(collected, repairCollected);
 
         if (!continuation.trim()) {
           console.warn(`Streaming repair produced empty continuation: ${modelKey}`);
+=======
+        const continuation = removeLikelyRepeatedPrefix(
+          collected,
+          repairCollected
+        );
+
+        if (!continuation.trim()) {
+          console.warn(
+            `Streaming repair produced empty continuation: ${modelKey}`
+          );
+>>>>>>> c6972ae (init commit)
 
           await addTaskContextNote(
             context,
@@ -775,7 +868,16 @@ export async function* executeChainStream(
 
       console.warn(`Streaming model failed: ${modelKey}`, message);
 
+<<<<<<< HEAD
       await completeAttemptSafely(context, attempt.attemptId, "failed", message);
+=======
+      await completeAttemptSafely(
+        context,
+        attempt.attemptId,
+        "failed",
+        message
+      );
+>>>>>>> c6972ae (init commit)
 
       await logRun({
         requestId: context.requestId,
@@ -802,7 +904,16 @@ export async function* executeChainStream(
 
   throw new Error(
     `All streaming fallback models failed. Last error: ${
+<<<<<<< HEAD
       lastError instanceof Error ? lastError.message : String(lastError)
     }`
   );
 }
+=======
+      lastError instanceof Error
+        ? lastError.message
+        : String(lastError)
+    }`
+  );
+}
+>>>>>>> c6972ae (init commit)
