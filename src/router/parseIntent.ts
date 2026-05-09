@@ -18,14 +18,10 @@ function normalizeHeaders(headers: Record<string, HeaderValue>): Record<string, 
   return normalized;
 }
 
-<<<<<<< HEAD
-function readHeader(headers: Record<string, string>, name: string): string | undefined {
-=======
 function readHeader(
   headers: Record<string, string>,
   name: string
 ): string | undefined {
->>>>>>> c6972ae (init commit)
   return headers[name.toLowerCase()];
 }
 
@@ -56,13 +52,7 @@ function parseBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function normalizeProfile(value: unknown): RoutingIntent["profile"] {
-<<<<<<< HEAD
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase();
-=======
   const normalized = String(value ?? "").trim().toLowerCase();
->>>>>>> c6972ae (init commit)
 
   if (normalized === "fast") {
     return "fast";
@@ -72,15 +62,7 @@ function normalizeProfile(value: unknown): RoutingIntent["profile"] {
     return "deep";
   }
 
-<<<<<<< HEAD
-  if (
-    normalized === "free-first" ||
-    normalized === "free_first" ||
-    normalized === "free"
-  ) {
-=======
   if (normalized === "free-first" || normalized === "free_first" || normalized === "free") {
->>>>>>> c6972ae (init commit)
     return "free-first";
   }
 

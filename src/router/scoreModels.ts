@@ -76,13 +76,8 @@ function profileBonus(
     if (model.strengths.includes("reasoning")) bonus += 8;
     if (model.strengths.includes("architecture")) bonus += 8;
     if (model.strengths.includes("large_scope")) bonus += 8;
-<<<<<<< HEAD
-    if (model.provider === "claudeBedrock" || model.provider === "claudeDirect")
-      bonus += 8;
-=======
     if (model.provider === "gpt") bonus += 12;
     if (model.provider === "claudeBedrock" || model.provider === "claudeDirect") bonus += 8;
->>>>>>> c6972ae (init commit)
   }
 
   if (intent.profile === "free-first") {

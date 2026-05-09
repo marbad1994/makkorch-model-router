@@ -3,16 +3,12 @@ import {
   InvokeModelCommand,
   InvokeModelWithResponseStreamCommand
 } from "@aws-sdk/client-bedrock-runtime";
-<<<<<<< HEAD
-import { Provider, ChatRequest, ChatResponse, ChatStreamChunk } from "../types/provider";
-=======
 import {
   Provider,
   ChatRequest,
   ChatResponse,
   ChatStreamChunk
 } from "../types/provider";
->>>>>>> c6972ae (init commit)
 
 type BedrockClaudeMessage = {
   role: "user" | "assistant";
@@ -158,14 +154,10 @@ export class ClaudeBedrockProvider implements Provider {
     }
 
     return {
-<<<<<<< HEAD
-      system: systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined,
-=======
       system:
         systemMessages.length > 0
           ? systemMessages.join("\n\n")
           : undefined,
->>>>>>> c6972ae (init commit)
       messages: this.ensureAlternatingMessages(normalized)
     };
   }

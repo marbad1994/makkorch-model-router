@@ -59,13 +59,9 @@ const MAX_EVENT_COUNT = Number(process.env.TASK_CONTEXT_MAX_EVENTS ?? 300);
 const OUTPUT_PREVIEW_CHARS = Number(
   process.env.TASK_CONTEXT_OUTPUT_PREVIEW_CHARS ?? 1200
 );
-<<<<<<< HEAD
-const OUTPUT_TAIL_CHARS = Number(process.env.TASK_CONTEXT_OUTPUT_TAIL_CHARS ?? 8000);
-=======
 const OUTPUT_TAIL_CHARS = Number(
   process.env.TASK_CONTEXT_OUTPUT_TAIL_CHARS ?? 8000
 );
->>>>>>> c6972ae (init commit)
 
 function now(): number {
   return Date.now();
@@ -318,13 +314,7 @@ export function buildTaskHandoffMessage(context: TaskContext): any {
         `- model: ${attempt.modelKey}`,
         `- status: ${attempt.status}`,
         `- output chars: ${attempt.outputChars}`,
-<<<<<<< HEAD
-        attempt.failureReason
-          ? `- failure/rejection reason: ${attempt.failureReason}`
-          : ""
-=======
         attempt.failureReason ? `- failure/rejection reason: ${attempt.failureReason}` : ""
->>>>>>> c6972ae (init commit)
       ]
         .filter(Boolean)
         .join("\n");
@@ -350,12 +340,8 @@ export function buildTaskHandoffMessage(context: TaskContext): any {
     .join("\n");
 
   const outputTail =
-<<<<<<< HEAD
-    lastAttempt?.outputTail ?? context.currentOutput.slice(-OUTPUT_TAIL_CHARS);
-=======
     lastAttempt?.outputTail ??
     context.currentOutput.slice(-OUTPUT_TAIL_CHARS);
->>>>>>> c6972ae (init commit)
 
   return {
     role: "system",

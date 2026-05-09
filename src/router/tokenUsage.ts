@@ -22,19 +22,12 @@ function fromOpenAIUsage(usage: any, source: string): NormalizedTokenUsage | nul
   }
 
   const inputTokens =
-<<<<<<< HEAD
-    numberOrZero(usage.prompt_tokens) || numberOrZero(usage.input_tokens);
-
-  const outputTokens =
-    numberOrZero(usage.completion_tokens) || numberOrZero(usage.output_tokens);
-=======
     numberOrZero(usage.prompt_tokens) ||
     numberOrZero(usage.input_tokens);
 
   const outputTokens =
     numberOrZero(usage.completion_tokens) ||
     numberOrZero(usage.output_tokens);
->>>>>>> c6972ae (init commit)
 
   const totalTokens =
     numberOrZero(usage.total_tokens) ||
@@ -66,26 +59,13 @@ function fromOpenAIUsage(usage: any, source: string): NormalizedTokenUsage | nul
   };
 }
 
-<<<<<<< HEAD
-function fromCodexTokenUsage(
-  tokenUsage: any,
-  source: string
-): NormalizedTokenUsage | null {
-=======
 function fromCodexTokenUsage(tokenUsage: any, source: string): NormalizedTokenUsage | null {
->>>>>>> c6972ae (init commit)
   if (!tokenUsage || typeof tokenUsage !== "object") {
     return null;
   }
 
   const total = tokenUsage.total ?? tokenUsage.last ?? tokenUsage;
 
-<<<<<<< HEAD
-  const inputTokens = numberOrZero(total.inputTokens) || numberOrZero(total.input_tokens);
-
-  const outputTokens =
-    numberOrZero(total.outputTokens) || numberOrZero(total.output_tokens);
-=======
   const inputTokens =
     numberOrZero(total.inputTokens) ||
     numberOrZero(total.input_tokens);
@@ -93,7 +73,6 @@ function fromCodexTokenUsage(tokenUsage: any, source: string): NormalizedTokenUs
   const outputTokens =
     numberOrZero(total.outputTokens) ||
     numberOrZero(total.output_tokens);
->>>>>>> c6972ae (init commit)
 
   const totalTokens =
     numberOrZero(total.totalTokens) ||
@@ -101,12 +80,8 @@ function fromCodexTokenUsage(tokenUsage: any, source: string): NormalizedTokenUs
     inputTokens + outputTokens;
 
   const cachedInputTokens =
-<<<<<<< HEAD
-    numberOrZero(total.cachedInputTokens) || numberOrZero(total.cached_input_tokens);
-=======
     numberOrZero(total.cachedInputTokens) ||
     numberOrZero(total.cached_input_tokens);
->>>>>>> c6972ae (init commit)
 
   const reasoningOutputTokens =
     numberOrZero(total.reasoningOutputTokens) ||
@@ -210,8 +185,4 @@ export function preferActualUsage(
   }
 
   return current;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c6972ae (init commit)

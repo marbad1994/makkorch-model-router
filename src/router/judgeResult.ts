@@ -101,27 +101,11 @@ function endsWithIncompleteSentence(output: string): boolean {
     return true;
   }
 
-<<<<<<< HEAD
-  if (
-    /\b(import|export|return|const|let|var|function|class|interface|type|if|else|for|while|switch|case|try|catch|finally|await|async|from|extends|implements)\s*$/i.test(
-      lastLine
-    )
-  ) {
-    return true;
-  }
-
-  if (
-    /\b(the|a|an|and|or|but|because|with|without|for|to|from|of|in|on|at|by)\s*$/i.test(
-      lastLine
-    )
-  ) {
-=======
   if (/\b(import|export|return|const|let|var|function|class|interface|type|if|else|for|while|switch|case|try|catch|finally|await|async|from|extends|implements)\s*$/i.test(lastLine)) {
     return true;
   }
 
   if (/\b(the|a|an|and|or|but|because|with|without|for|to|from|of|in|on|at|by)\s*$/i.test(lastLine)) {
->>>>>>> c6972ae (init commit)
     return true;
   }
 
@@ -200,13 +184,7 @@ function looksLikeIncompleteCode(prompt: string, output: string): boolean {
   }
 
   if (
-<<<<<<< HEAD
-    /^(import|export|return|const|let|var|function|class|interface|type)\b/.test(
-      lastLine
-    ) &&
-=======
     /^(import|export|return|const|let|var|function|class|interface|type)\b/.test(lastLine) &&
->>>>>>> c6972ae (init commit)
     !/[;})\]`]$/.test(lastLine)
   ) {
     return true;

@@ -289,23 +289,6 @@ export function classifyTask(messages: any[]): TaskProfile {
     (hasRegex(text, [/```/, /\bfile:\s*[\w./-]+/]) ? 4 : 0);
 
   const architectureScore =
-<<<<<<< HEAD
-    countMatches(text, explicitArchitecture) * 4 + (explicitArchitectureQuestion ? 8 : 0);
-
-  const debuggingScore =
-    countMatches(text, debuggingTerms) * 4 +
-    (hasRegex(text, [/error:\s/i, /typeerror/i, /referenceerror/i, /syntaxerror/i])
-      ? 5
-      : 0);
-
-  const refactorScore = countMatches(text, refactorTerms) * 4;
-
-  const testingScore = countMatches(text, testingTerms) * 4;
-
-  const docsScore = countMatches(text, docsTerms) * 3;
-
-  const smallEditScore = countMatches(text, smallEditTerms) * 4;
-=======
     countMatches(text, explicitArchitecture) * 4 +
     (explicitArchitectureQuestion ? 8 : 0);
 
@@ -324,7 +307,6 @@ export function classifyTask(messages: any[]): TaskProfile {
 
   const smallEditScore =
     countMatches(text, smallEditTerms) * 4;
->>>>>>> c6972ae (init commit)
 
   const scores: ClassificationScore[] = [
     { taskType: "debugging", score: debuggingScore },
@@ -341,42 +323,17 @@ export function classifyTask(messages: any[]): TaskProfile {
   const top = scores[0];
 
   const isLikelyImplementation =
-<<<<<<< HEAD
-    implementationScore > 0 && hasAny(text, implementationTerms);
-
-  const isExplicitArchitecture = architectureScore >= 8 || explicitArchitectureQuestion;
-=======
     implementationScore > 0 &&
     hasAny(text, implementationTerms);
 
   const isExplicitArchitecture =
     architectureScore >= 8 ||
     explicitArchitectureQuestion;
->>>>>>> c6972ae (init commit)
 
   const multiFile = hasAny(text, multiFileSignals);
   const largeImplementation = hasAny(text, largeImplementationSignals);
 
   if (debuggingScore >= 4 && debuggingScore >= implementationScore) {
-<<<<<<< HEAD
-    return makeProfile("debugging", multiFile ? 4 : 3, 5, 7, 4);
-  }
-
-  if (refactorScore >= 4 && refactorScore >= implementationScore) {
-    return makeProfile("refactor", multiFile ? 4 : 3, 3, 5, 3);
-  }
-
-  if (testingScore >= 4 && testingScore >= implementationScore) {
-    return makeProfile("testing", 3, 3, 5, 3);
-  }
-
-  if (smallEditScore >= 4 && !largeImplementation && !multiFile) {
-    return makeProfile("small_edit", 1, 1, 7, 1);
-  }
-
-  if (docsScore >= 4 && implementationScore === 0) {
-    return makeProfile("docs", 2, 2, 4, 1);
-=======
     return makeProfile(
       "debugging",
       multiFile ? 4 : 3,
@@ -424,7 +381,6 @@ export function classifyTask(messages: any[]): TaskProfile {
       4,
       1
     );
->>>>>>> c6972ae (init commit)
   }
 
   /*
@@ -437,9 +393,6 @@ export function classifyTask(messages: any[]): TaskProfile {
    * - "Output complete files"
    */
   if (isExplicitArchitecture && architectureScore > implementationScore + 3) {
-<<<<<<< HEAD
-    return makeProfile("architecture", 5, 5, 5, 4);
-=======
     return makeProfile(
       "architecture",
       5,
@@ -447,7 +400,6 @@ export function classifyTask(messages: any[]): TaskProfile {
       5,
       4
     );
->>>>>>> c6972ae (init commit)
   }
 
   if (isLikelyImplementation) {
@@ -486,9 +438,6 @@ export function classifyTask(messages: any[]): TaskProfile {
     }
   }
 
-<<<<<<< HEAD
-  return makeProfile("implementation", 3, 3, 5, 3);
-=======
   return makeProfile(
     "implementation",
     3,
@@ -496,5 +445,4 @@ export function classifyTask(messages: any[]): TaskProfile {
     5,
     3
   );
->>>>>>> c6972ae (init commit)
 }

@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-import { Provider, ChatRequest, ChatResponse, ChatStreamChunk } from "../types/provider";
-=======
 import {
   Provider,
   ChatRequest,
   ChatResponse,
   ChatStreamChunk
 } from "../types/provider";
->>>>>>> c6972ae (init commit)
 
 function parseOpenAISseData(buffer: string): {
   events: string[];

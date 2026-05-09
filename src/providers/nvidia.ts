@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-import { Provider, ChatRequest, ChatResponse, ChatStreamChunk } from "../types/provider";
-=======
 import {
   Provider,
   ChatRequest,
   ChatResponse,
   ChatStreamChunk
 } from "../types/provider";
->>>>>>> c6972ae (init commit)
 
 type NvidiaPayload = {
   model: string;
@@ -108,15 +104,11 @@ function extractReasoningDelta(json: any): string {
   const delta = json?.choices?.[0]?.delta ?? {};
 
   return (
-<<<<<<< HEAD
-    delta.reasoning_content ?? delta.reasoning ?? delta.thinking ?? delta.thoughts ?? ""
-=======
     delta.reasoning_content ??
     delta.reasoning ??
     delta.thinking ??
     delta.thoughts ??
     ""
->>>>>>> c6972ae (init commit)
   );
 }
 
@@ -270,8 +262,4 @@ export class NvidiaProvider implements Provider {
       }
     }
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c6972ae (init commit)

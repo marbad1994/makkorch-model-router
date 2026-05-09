@@ -84,8 +84,4 @@ export function selectModel(requestBody: any): RoutingDecision {
     task,
     reason: "Selected by scoring engine"
   };
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c6972ae (init commit)

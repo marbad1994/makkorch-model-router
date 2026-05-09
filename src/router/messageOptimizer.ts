@@ -145,12 +145,8 @@ export function optimizeMessagesForModel(
     return messages;
   }
 
-<<<<<<< HEAD
-  return [buildCodingGuardrail(modelKey), ...messages];
-=======
   return [
     buildCodingGuardrail(modelKey),
     ...messages
   ];
->>>>>>> c6972ae (init commit)
 }

@@ -10,15 +10,8 @@ export type TaskType =
 
 export interface TaskProfile {
   taskType: TaskType;
-<<<<<<< HEAD
-  scope: number; // 1-5
-  reasoning: number; // 1-5
-  urgency: number; // 1-10
-  risk: number; // 1-5
-=======
   scope: number;      // 1-5
   reasoning: number;  // 1-5
   urgency: number;    // 1-10
   risk: number;       // 1-5
->>>>>>> c6972ae (init commit)
 }

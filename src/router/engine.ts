@@ -2,14 +2,10 @@ import { REGISTRY } from "../config/registry";
 import { providers } from "../providers";
 import type { ChatStreamChunk } from "../types/provider";
 
-<<<<<<< HEAD
-export async function executeModel(registryKey: keyof typeof REGISTRY, messages: any[]) {
-=======
 export async function executeModel(
   registryKey: keyof typeof REGISTRY,
   messages: any[]
 ) {
->>>>>>> c6972ae (init commit)
   const profile = REGISTRY[registryKey];
 
   const provider = providers[profile.provider];

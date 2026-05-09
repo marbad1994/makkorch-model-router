@@ -1,12 +1,8 @@
 import { REGISTRY } from "../config/registry";
-<<<<<<< HEAD
-import { recordFailure, recordSuccess } from "../storage/modelPerformance";
-=======
 import {
   recordFailure,
   recordSuccess
 } from "../storage/modelPerformance";
->>>>>>> c6972ae (init commit)
 import { logModelRunSafely } from "../storage/modelRunLedger";
 import {
   addTaskContextNote,
@@ -14,6 +10,7 @@ import {
   buildTaskHandoffMessage,
   completeTaskAttempt,
   createTaskContext,
+  loadTaskContext,
   startTaskAttempt,
   type TaskContext
 } from "../storage/taskContext";
@@ -77,6 +74,54 @@ function isThinkingChunk(chunk: ChatStreamChunk): boolean {
   );
 }
 
+// Heartbeat cadence: how often the router emits a synthetic "thinking"
+// keepalive while waiting for the provider to produce output. Defaults to
+// 5s; tunable via env. The keepalive resets the downstream client's idle
+// timer and gives the user "still working…" feedback instead of silence.
+let HEARTBEAT_INTERVAL_MS = Math.max(
+  500,
+  Number(process.env.STREAM_HEARTBEAT_INTERVAL_MS ?? 5000)
+);
+
+// Hard ceiling on how long we'll wait for the provider with zero real
+// activity. Independent of heartbeats — only resets when the provider
+// itself produces a chunk (content, thinking, or event). This catches
+// truly stuck connections where the provider has hung.
+let HARD_PROVIDER_SILENCE_MS_DEFAULT = Math.max(
+  60_000,
+  Number(process.env.STREAM_HARD_SILENCE_MS ?? 600_000)
+);
+
+/**
+ * Runtime-mutable accessors for the stream timeout settings. Used by the
+ * /v1/config endpoint to adjust values without restarting the router.
+ */
+export function getStreamTimeoutConfig(): {
+  heartbeatIntervalMs: number;
+  hardSilenceMs: number;
+} {
+  return {
+    heartbeatIntervalMs: HEARTBEAT_INTERVAL_MS,
+    hardSilenceMs: HARD_PROVIDER_SILENCE_MS_DEFAULT
+  };
+}
+
+export function setStreamTimeoutConfig(opts: {
+  heartbeatIntervalMs?: number;
+  hardSilenceMs?: number;
+}): { heartbeatIntervalMs: number; hardSilenceMs: number } {
+  if (opts.heartbeatIntervalMs !== undefined) {
+    HEARTBEAT_INTERVAL_MS = Math.max(500, opts.heartbeatIntervalMs);
+  }
+  if (opts.hardSilenceMs !== undefined) {
+    HARD_PROVIDER_SILENCE_MS_DEFAULT = Math.max(60_000, opts.hardSilenceMs);
+  }
+  return {
+    heartbeatIntervalMs: HEARTBEAT_INTERVAL_MS,
+    hardSilenceMs: HARD_PROVIDER_SILENCE_MS_DEFAULT
+  };
+}
+
 async function* withAdaptiveStreamIdleTimeout<T extends ChatStreamChunk>(
   stream: AsyncIterable<T>,
   normalIdleTimeoutMs: number,
@@ -85,58 +130,84 @@ async function* withAdaptiveStreamIdleTimeout<T extends ChatStreamChunk>(
 ): AsyncIterable<T> {
   const iterator = stream[Symbol.asyncIterator]();
 
-  let nextIdleTimeoutMs = normalIdleTimeoutMs;
+  // The hard ceiling is the larger of the configured per-chunk timeouts and
+  // a generous default — provider-silent for this long means it's stuck.
+  const hardCeilingMs = Math.max(
+    HARD_PROVIDER_SILENCE_MS_DEFAULT,
+    thinkingIdleTimeoutMs,
+    normalIdleTimeoutMs
+  );
+
+  let lastProviderActivityAt = Date.now();
   let lastActivityKind = "start";
+  let pendingNext: Promise<IteratorResult<T>> | null = null;
 
-  while (true) {
-    let timeoutHandle: NodeJS.Timeout | undefined;
+  function nextChunk(): Promise<IteratorResult<T>> {
+    if (!pendingNext) {
+      pendingNext = iterator.next();
+    }
+    return pendingNext;
+  }
 
-    const timeout = new Promise<never>((_resolve, reject) => {
-      timeoutHandle = setTimeout(() => {
-        reject(
-          new Error(
-            `${label} stream idle timed out after ${nextIdleTimeoutMs}ms without output/activity; last activity: ${lastActivityKind}`
-          )
+  function makeHeartbeat(): T {
+    return {
+      content: "",
+      kind: "thinking",
+      raw: { heartbeat: true, label, lastActivityKind }
+    } as unknown as T;
+  }
+
+  try {
+    while (true) {
+      const sinceLastActivity = Date.now() - lastProviderActivityAt;
+      if (sinceLastActivity >= hardCeilingMs) {
+        throw new Error(
+          `${label} stream silent for ${sinceLastActivity}ms (hard ceiling ${hardCeilingMs}ms); last activity: ${lastActivityKind}`
         );
-      }, nextIdleTimeoutMs);
-    });
-
-    try {
-      const result = await Promise.race([iterator.next(), timeout]);
-
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle);
       }
 
-      if (result.done) {
+      let heartbeatHandle: NodeJS.Timeout | undefined;
+      const heartbeat = new Promise<"heartbeat">((resolve) => {
+        heartbeatHandle = setTimeout(() => resolve("heartbeat"), HEARTBEAT_INTERVAL_MS);
+      });
+
+      const winner = await Promise.race([nextChunk(), heartbeat]);
+
+      if (heartbeatHandle) {
+        clearTimeout(heartbeatHandle);
+      }
+
+      if (winner === "heartbeat") {
+        // Provider hasn't produced anything since the last heartbeat —
+        // emit a synthetic keepalive and keep waiting on the same pending
+        // iterator promise. This resets downstream idle timers without
+        // touching `lastProviderActivityAt`, so the hard ceiling still bites
+        // if the provider is genuinely stuck.
+        yield makeHeartbeat();
+        continue;
+      }
+
+      // Provider produced something — clear the pending promise so the
+      // next loop iteration re-arms a fresh `iterator.next()`.
+      pendingNext = null;
+
+      if (winner.done) {
         return;
       }
 
-      const chunk = result.value;
-
-      if (isThinkingChunk(chunk)) {
-        nextIdleTimeoutMs = thinkingIdleTimeoutMs;
-        lastActivityKind = chunk.kind ?? "thinking";
-      } else {
-        nextIdleTimeoutMs = normalIdleTimeoutMs;
-        lastActivityKind = chunk.kind ?? "content";
-      }
+      const chunk = winner.value;
+      lastProviderActivityAt = Date.now();
+      lastActivityKind = chunk.kind ?? (isThinkingChunk(chunk) ? "thinking" : "content");
 
       yield chunk;
-    } catch (error) {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle);
+    }
+  } finally {
+    if (typeof iterator.return === "function") {
+      try {
+        await iterator.return();
+      } catch {
+        // Ignore cleanup errors from provider streams.
       }
-
-      if (typeof iterator.return === "function") {
-        try {
-          await iterator.return();
-        } catch {
-          // Ignore cleanup errors from provider streams.
-        }
-      }
-
-      throw error;
     }
   }
 }
@@ -195,13 +266,9 @@ function getStreamThinkingIdleTimeoutForModel(modelKey: string): number {
   const modelTimeout = process.env[modelEnvKey];
   const providerTimeout = process.env[providerEnvKey];
 
-<<<<<<< HEAD
-  const defaultTimeout = process.env.STREAM_THINKING_IDLE_TIMEOUT_MS ?? "120000";
-=======
   const defaultTimeout =
     process.env.STREAM_THINKING_IDLE_TIMEOUT_MS ??
     "120000";
->>>>>>> c6972ae (init commit)
 
   return Number(modelTimeout ?? providerTimeout ?? defaultTimeout);
 }
@@ -294,14 +361,10 @@ function buildAttemptMessages(
     return baseMessages;
   }
 
-<<<<<<< HEAD
-  return [buildTaskHandoffMessage(context), ...baseMessages];
-=======
   return [
     buildTaskHandoffMessage(context),
     ...baseMessages
   ];
->>>>>>> c6972ae (init commit)
 }
 
 async function appendOutputSafely(
@@ -375,23 +438,38 @@ async function logRun(args: {
   });
 }
 
-<<<<<<< HEAD
-export async function executeChain(chain: string[], messages: any[], taskType: string) {
-=======
 export async function executeChain(
   chain: string[],
   messages: any[],
-  taskType: string
+  taskType: string,
+  options: { previousRequestId?: string } = {}
 ) {
->>>>>>> c6972ae (init commit)
   let lastError: unknown;
 
   const attemptedModels = new Set<string>();
-  const promptText = messageText(messages);
+
+  // If the caller hands us a previous task context, prepend its handoff message
+  // so the next agent sees what already happened across requests.
+  let effectiveMessages = messages;
+  if (options.previousRequestId) {
+    const prev = await loadTaskContext(options.previousRequestId);
+    if (prev) {
+      effectiveMessages = [buildTaskHandoffMessage(prev), ...messages];
+      console.log(
+        `Cross-request handoff: prepending context from ${options.previousRequestId}`
+      );
+    } else {
+      console.warn(
+        `Cross-request handoff requested but ${options.previousRequestId} not found`
+      );
+    }
+  }
+
+  const promptText = messageText(effectiveMessages);
 
   const context = await createTaskContext({
     taskType,
-    originalMessages: messages
+    originalMessages: effectiveMessages
   });
 
   console.log(`Task context: ${context.requestId}`);
@@ -416,13 +494,8 @@ export async function executeChain(
         `Trying model: ${modelKey} (timeout: ${timeoutMs}ms, context: ${context.requestId})`
       );
 
-<<<<<<< HEAD
-      const attemptMessages = buildAttemptMessages(messages, context, attemptIndex);
-
-      const optimizedMessages = optimizeMessagesForModel(modelKey, attemptMessages);
-=======
       const attemptMessages = buildAttemptMessages(
-        messages,
+        effectiveMessages,
         context,
         attemptIndex
       );
@@ -431,7 +504,6 @@ export async function executeChain(
         modelKey,
         attemptMessages
       );
->>>>>>> c6972ae (init commit)
 
       const result = await withTimeout(
         executeModel(modelKey as any, optimizedMessages),
@@ -445,13 +517,9 @@ export async function executeChain(
       let verdict = judgeResult(promptText, result.content);
 
       if (!verdict.pass && shouldAttemptStreamingRepair(verdict.reason)) {
-<<<<<<< HEAD
-        console.warn(`Model output needs repair: ${modelKey} — ${verdict.reason}`);
-=======
         console.warn(
           `Model output needs repair: ${modelKey} — ${verdict.reason}`
         );
->>>>>>> c6972ae (init commit)
 
         await addTaskContextNote(
           context,
@@ -462,7 +530,7 @@ export async function executeChain(
 
         const repairMessages = optimizeMessagesForModel(
           modelKey,
-          buildRepairMessages(messages, result.content, context)
+          buildRepairMessages(effectiveMessages, result.content, context)
         );
 
         const repairResult = await withTimeout(
@@ -486,13 +554,9 @@ export async function executeChain(
       }
 
       if (!verdict.pass) {
-<<<<<<< HEAD
-        console.warn(`Model rejected by judge: ${modelKey} — ${verdict.reason}`);
-=======
         console.warn(
           `Model rejected by judge: ${modelKey} — ${verdict.reason}`
         );
->>>>>>> c6972ae (init commit)
 
         await completeAttemptSafely(
           context,
@@ -538,23 +602,20 @@ export async function executeChain(
 
       return {
         result,
-        usedModel: modelKey
+        usedModel: modelKey,
+        taskContextId: context.requestId
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
 
       console.warn(`Model failed: ${modelKey}`, message);
 
-<<<<<<< HEAD
-      await completeAttemptSafely(context, attempt.attemptId, "failed", message);
-=======
       await completeAttemptSafely(
         context,
         attempt.attemptId,
         "failed",
         message
       );
->>>>>>> c6972ae (init commit)
 
       await logRun({
         requestId: context.requestId,
@@ -577,13 +638,9 @@ export async function executeChain(
 
   throw new Error(
     `All fallback models failed. Last error: ${
-<<<<<<< HEAD
-      lastError instanceof Error ? lastError.message : String(lastError)
-=======
       lastError instanceof Error
         ? lastError.message
         : String(lastError)
->>>>>>> c6972ae (init commit)
     }`
   );
 }
@@ -591,18 +648,35 @@ export async function executeChain(
 export async function* executeChainStream(
   chain: string[],
   messages: any[],
-  taskType: string
-): AsyncIterable<ChatStreamChunk & { usedModel: string }> {
+  taskType: string,
+  options: { previousRequestId?: string } = {}
+): AsyncIterable<ChatStreamChunk & { usedModel: string; taskContextId?: string }> {
   let lastError: unknown;
 
   const attemptedModels = new Set<string>();
-  const promptText = messageText(messages);
+
+  let effectiveMessages = messages;
+  if (options.previousRequestId) {
+    const prev = await loadTaskContext(options.previousRequestId);
+    if (prev) {
+      effectiveMessages = [buildTaskHandoffMessage(prev), ...messages];
+      console.log(
+        `Cross-request handoff (stream): prepending context from ${options.previousRequestId}`
+      );
+    } else {
+      console.warn(
+        `Cross-request handoff (stream) requested but ${options.previousRequestId} not found`
+      );
+    }
+  }
+
+  const promptText = messageText(effectiveMessages);
 
   const maxRepairs = Number(process.env.STREAM_REPAIR_MAX_ATTEMPTS ?? 1);
 
   const context = await createTaskContext({
     taskType,
-    originalMessages: messages
+    originalMessages: effectiveMessages
   });
 
   console.log(`Task context: ${context.requestId}`);
@@ -632,13 +706,8 @@ export async function* executeChainStream(
         `Trying streaming model: ${modelKey} (idle timeout: ${normalIdleTimeoutMs}ms, thinking idle timeout: ${thinkingIdleTimeoutMs}ms, context: ${context.requestId})`
       );
 
-<<<<<<< HEAD
-      const attemptMessages = buildAttemptMessages(messages, context, attemptIndex);
-
-      const optimizedMessages = optimizeMessagesForModel(modelKey, attemptMessages);
-=======
       const attemptMessages = buildAttemptMessages(
-        messages,
+        effectiveMessages,
         context,
         attemptIndex
       );
@@ -647,7 +716,6 @@ export async function* executeChainStream(
         modelKey,
         attemptMessages
       );
->>>>>>> c6972ae (init commit)
 
       const stream = withAdaptiveStreamIdleTimeout(
         executeModelStream(modelKey as any, optimizedMessages),
@@ -680,7 +748,8 @@ export async function* executeChainStream(
 
         yield {
           ...chunk,
-          usedModel: modelKey
+          usedModel: modelKey,
+          taskContextId: context.requestId
         };
       }
 
@@ -738,7 +807,7 @@ export async function* executeChainStream(
 
         const repairMessages = optimizeMessagesForModel(
           modelKey,
-          buildRepairMessages(messages, collected, context)
+          buildRepairMessages(effectiveMessages, collected, context)
         );
 
         let repairCollected = "";
@@ -770,12 +839,6 @@ export async function* executeChainStream(
           repairCollected += chunk.content;
         }
 
-<<<<<<< HEAD
-        const continuation = removeLikelyRepeatedPrefix(collected, repairCollected);
-
-        if (!continuation.trim()) {
-          console.warn(`Streaming repair produced empty continuation: ${modelKey}`);
-=======
         const continuation = removeLikelyRepeatedPrefix(
           collected,
           repairCollected
@@ -785,7 +848,6 @@ export async function* executeChainStream(
           console.warn(
             `Streaming repair produced empty continuation: ${modelKey}`
           );
->>>>>>> c6972ae (init commit)
 
           await addTaskContextNote(
             context,
@@ -810,7 +872,8 @@ export async function* executeChainStream(
             modelKey,
             taskContextId: context.requestId
           },
-          usedModel: modelKey
+          usedModel: modelKey,
+          taskContextId: context.requestId
         };
 
         verdict = judgeResult(promptText, collected);
@@ -868,16 +931,12 @@ export async function* executeChainStream(
 
       console.warn(`Streaming model failed: ${modelKey}`, message);
 
-<<<<<<< HEAD
-      await completeAttemptSafely(context, attempt.attemptId, "failed", message);
-=======
       await completeAttemptSafely(
         context,
         attempt.attemptId,
         "failed",
         message
       );
->>>>>>> c6972ae (init commit)
 
       await logRun({
         requestId: context.requestId,
@@ -904,16 +963,9 @@ export async function* executeChainStream(
 
   throw new Error(
     `All streaming fallback models failed. Last error: ${
-<<<<<<< HEAD
-      lastError instanceof Error ? lastError.message : String(lastError)
-    }`
-  );
-}
-=======
       lastError instanceof Error
         ? lastError.message
         : String(lastError)
     }`
   );
 }
->>>>>>> c6972ae (init commit)
