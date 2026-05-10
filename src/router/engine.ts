@@ -2,9 +2,14 @@ import { REGISTRY } from "../config/registry";
 import { providers } from "../providers";
 import type { ChatStreamChunk } from "../types/provider";
 
+export interface ExecuteModelOptions {
+  promptCache?: boolean;
+}
+
 export async function executeModel(
   registryKey: keyof typeof REGISTRY,
-  messages: any[]
+  messages: any[],
+  options: ExecuteModelOptions = {}
 ) {
   const profile = REGISTRY[registryKey];
 
@@ -16,13 +21,15 @@ export async function executeModel(
 
   return provider.chat({
     model: profile.id,
-    messages
+    messages,
+    promptCache: options.promptCache
   });
 }
 
 export async function* executeModelStream(
   registryKey: keyof typeof REGISTRY,
-  messages: any[]
+  messages: any[],
+  options: ExecuteModelOptions = {}
 ): AsyncIterable<ChatStreamChunk> {
   const profile = REGISTRY[registryKey];
 
@@ -36,7 +43,8 @@ export async function* executeModelStream(
     yield* provider.chatStream({
       model: profile.id,
       messages,
-      stream: true
+      stream: true,
+      promptCache: options.promptCache
     });
 
     return;
@@ -45,7 +53,8 @@ export async function* executeModelStream(
   const response = await provider.chat({
     model: profile.id,
     messages,
-    stream: false
+    stream: false,
+    promptCache: options.promptCache
   });
 
   const chunks = response.content.match(/.{1,50}/gs) ?? [];

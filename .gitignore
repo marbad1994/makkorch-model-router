@@ -1,3 +1,5 @@
 data/
 .env
+.aiterm/
+.shmakk/
 node_modules/

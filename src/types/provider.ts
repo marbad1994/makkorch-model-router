@@ -8,6 +8,8 @@ export interface ChatRequest {
   messages: ChatMessage[];
   temperature?: number;
   stream?: boolean;
+  /** Enable Anthropic-style prompt caching with cache_control markers. */
+  promptCache?: boolean;
 }
 
 export interface ChatResponse {

@@ -10,12 +10,15 @@ import {
   ChatStreamChunk
 } from "../types/provider";
 
+type BedrockClaudeContentBlock = {
+  type: "text";
+  text: string;
+  cache_control?: { type: "ephemeral" };
+};
+
 type BedrockClaudeMessage = {
   role: "user" | "assistant";
-  content: Array<{
-    type: "text";
-    text: string;
-  }>;
+  content: BedrockClaudeContentBlock[];
 };
 
 export class ClaudeBedrockProvider implements Provider {
@@ -24,14 +27,20 @@ export class ClaudeBedrockProvider implements Provider {
   });
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    const { system, messages } = this.normalizeMessages(request.messages);
+    const promptCache = promptCacheEnabled(request);
+    const { system, messages } = this.normalizeMessages(request.messages, {
+      promptCache
+    });
 
-    const body = {
+    const body: Record<string, unknown> = {
       anthropic_version: "bedrock-2023-05-31",
       max_tokens: Number(process.env.CLAUDE_MAX_TOKENS ?? 24096),
-      ...(system ? { system } : {}),
       messages
     };
+
+    if (system) {
+      body.system = system;
+    }
 
     const command = new InvokeModelCommand({
       modelId: request.model,
@@ -58,14 +67,20 @@ export class ClaudeBedrockProvider implements Provider {
   }
 
   async *chatStream(request: ChatRequest): AsyncIterable<ChatStreamChunk> {
-    const { system, messages } = this.normalizeMessages(request.messages);
+    const promptCache = promptCacheEnabled(request);
+    const { system, messages } = this.normalizeMessages(request.messages, {
+      promptCache
+    });
 
-    const body = {
+    const body: Record<string, unknown> = {
       anthropic_version: "bedrock-2023-05-31",
       max_tokens: Number(process.env.CLAUDE_MAX_TOKENS ?? 24096),
-      ...(system ? { system } : {}),
       messages
     };
+
+    if (system) {
+      body.system = system;
+    }
 
     const command = new InvokeModelWithResponseStreamCommand({
       modelId: request.model,
@@ -107,12 +122,16 @@ export class ClaudeBedrockProvider implements Provider {
     }
   }
 
-  private normalizeMessages(messages: ChatRequest["messages"]): {
-    system?: string;
+  private normalizeMessages(
+    messages: ChatRequest["messages"],
+    opts?: { promptCache?: boolean }
+  ): {
+    system?: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>;
     messages: BedrockClaudeMessage[];
   } {
     const systemMessages: string[] = [];
     const normalized: BedrockClaudeMessage[] = [];
+    const promptCache = opts?.promptCache ?? false;
 
     for (const message of messages) {
       const text = this.contentToText(message.content);
@@ -153,12 +172,40 @@ export class ClaudeBedrockProvider implements Provider {
       });
     }
 
+    const merged = this.ensureAlternatingMessages(normalized);
+
+    // Apply prompt caching markers when enabled.
+    // Strategy: mark the last 2 conversation turns as NOT cached
+    // (they change frequently), and everything before that as cached.
+    // System prompt is always cached when prompt cache is enabled.
+    if (promptCache) {
+      const UNCacheableMessageCount = 2; // last 2 messages not cached
+      const cacheableCount = Math.max(0, merged.length - UNCacheableMessageCount);
+
+      for (let i = 0; i < merged.length; i++) {
+        const msg = merged[i]!;
+        // Only mark the last content block in each cacheable message
+        if (i < cacheableCount && msg.content.length > 0) {
+          const lastBlock = msg.content[msg.content.length - 1]!;
+          lastBlock.cache_control = { type: "ephemeral" };
+        }
+      }
+    }
+
     return {
       system:
         systemMessages.length > 0
-          ? systemMessages.join("\n\n")
+          ? promptCache
+            ? [
+                {
+                  type: "text" as const,
+                  text: systemMessages.join("\n\n"),
+                  cache_control: { type: "ephemeral" as const }
+                }
+              ]
+            : systemMessages.join("\n\n")
           : undefined,
-      messages: this.ensureAlternatingMessages(normalized)
+      messages: merged
     };
   }
 
@@ -219,4 +266,33 @@ export class ClaudeBedrockProvider implements Provider {
 
     return result;
   }
+}
+
+/**
+ * Returns true when prompt caching should be applied for this request.
+ *
+ * Prompt caching is enabled when:
+ * 1. The global env PROMPT_CACHE_ENABLED is "true" (default: true for Claude),
+ *    AND
+ * 2. The request does not explicitly disable it via promptCache: false.
+ *
+ * When enabled, cache_control markers are added to system messages and
+ * conversation prefixes (all but the last 2 turns) so Claude caches them
+ * server-side. Cache read tokens cost ~90% less; cache write tokens cost
+ * ~25% more. The cache TTL is 5 minutes, refreshed on each use.
+ */
+function promptCacheEnabled(request: ChatRequest): boolean {
+  const globalEnabled =
+    process.env.PROMPT_CACHE_ENABLED !== "false"; // default true
+
+  if (!globalEnabled) {
+    return false;
+  }
+
+  // Per-request opt-out
+  if (request.promptCache === false) {
+    return false;
+  }
+
+  return true;
 }

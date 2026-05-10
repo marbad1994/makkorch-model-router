@@ -5,7 +5,8 @@ export type ProviderName =
   | "claudeBedrock"
   | "claudeDirect"
   | "gpt"
-  | "nvidia";
+  | "nvidia"
+  | "deepseek";
 
 export interface ModelProfile {
   id: string;
@@ -108,14 +109,14 @@ export const REGISTRY: Record<string, ModelProfile> = {
 
   deepseekFlash: {
     id: MODELS.deepseekFlash,
-    provider: "nvidia",
+    provider: "deepseek",
 
     quality: 4,
     speed: 7,
-    cost: 0,
+    cost: 2,
     latency: 5,
 
-    enabled: process.env.ENABLE_DEEPSEEK !== "false",
+    enabled: true,
 
     strengths: [
       "implementation",
@@ -127,14 +128,14 @@ export const REGISTRY: Record<string, ModelProfile> = {
 
   deepseekPro: {
     id: MODELS.deepseekPro,
-    provider: "nvidia",
+    provider: "deepseek",
 
     quality: 5,
     speed: 4,
-    cost: 0,
+    cost: 2,
     latency: 7,
 
-    enabled: process.env.ENABLE_DEEPSEEK !== "false",
+    enabled: true,
 
     strengths: [
       "architecture",
@@ -164,16 +165,16 @@ export const REGISTRY: Record<string, ModelProfile> = {
     ]
   },
   minimax: {
-	  enabled: true,
-	  id: MODELS.minimax,
-	  provider: "nvidia",
-	  quality: 4,
-	  speed: 4,
-	  cost: 0,
-	  latency: 6,
+    enabled: false,
+    id: MODELS.minimax,
+    provider: "nvidia",
+    quality: 4,
+    speed: 4,
+    cost: 0,
+    latency: 6,
     strengths: [
-	    "coding",
-	    "implementation",
+      "coding",
+      "implementation",
       "quick_code",
       "docs",
       "simple_code",
@@ -183,7 +184,7 @@ export const REGISTRY: Record<string, ModelProfile> = {
 
 
   stepFlash: {
-    enabled: true,
+    enabled: false,
     id: MODELS.stepFlash,
     provider: "nvidia",
 
@@ -207,10 +208,9 @@ export const REGISTRY: Record<string, ModelProfile> = {
     speed: 3,
     cost: 0,
     latency: 7,
-    enabled: true,
+    enabled: false,
 
-
-  strengths: [
+    strengths: [
       "cline_act",
       "multi_file",
       "implementation",
@@ -228,7 +228,6 @@ export const REGISTRY: Record<string, ModelProfile> = {
     enabled: true,
     latency: 8,
 
-
     strengths: [
       "architecture",
       "project_setup",
@@ -238,13 +237,13 @@ export const REGISTRY: Record<string, ModelProfile> = {
     ]
   },
   lama: {
-   id: MODELS.lama,
-  provider: "nvidia",
- quality: 6,
-speed: 4,
-cost: 0,
-enabled: true,
-latency: 6,
+    id: MODELS.lama,
+    provider: "nvidia",
+    quality: 6,
+    speed: 4,
+    cost: 0,
+    enabled: false,
+    latency: 6,
     strengths: [
       "architecture",
       "project_setup",
@@ -252,25 +251,9 @@ latency: 6,
       "reasoning",
       "debugging"
     ]
-  
   },
-  glm47: {
-    id: MODELS.glm47,
-    provider: "nvidia",
-    quality: 2,
-    speed: 4,
-    cost: 0,
-    latency: 5,
-    enabled: false,
-    strengths: [
-      "implementation",
-      "reasoning",
-      "coding",
-      "large_context"
-    ]
-  },
-
   gpt55: {
+  enabled: false,
     id: MODELS.gpt55,
     provider: "gpt",
 
@@ -279,7 +262,6 @@ latency: 6,
     cost: 6,
     latency: 6,
 
-    enabled: process.env.ENABLE_CODEX !== "false",
 
     strengths: [
       "architecture",

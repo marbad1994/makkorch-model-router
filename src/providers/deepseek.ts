@@ -1,92 +1,57 @@
-import {
+import type {
   Provider,
   ChatRequest,
   ChatResponse,
   ChatStreamChunk
 } from "../types/provider";
 
-type NvidiaPayload = {
+type DeepSeekPayload = {
   model: string;
   messages: ChatRequest["messages"];
   max_tokens: number;
   temperature: number;
   top_p: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
   stream: boolean;
-  chat_template_kwargs?: {
-    thinking?: boolean;
-    reasoning_effort?: string;
+  thinking?: {
+    type: "enabled" | "disabled";
   };
+  reasoning_effort?: string;
 };
 
-function getNvidiaBaseUrl(): string {
-  return process.env.NVIDIA_BASE_URL ?? "https://integrate.api.nvidia.com/v1";
+function getBaseUrl(): string {
+  return process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com";
 }
 
-function getNvidiaInvokeUrl(): string {
-  return `${getNvidiaBaseUrl().replace(/\/$/, "")}/chat/completions`;
+function getInvokeUrl(): string {
+  return `${getBaseUrl().replace(/\/$/, "")}/chat/completions`;
 }
 
-function isReasoningModel(model: string): boolean {
-  const lower = model.toLowerCase();
-
-  return (
-    lower.includes("deepseek") ||
-    lower.includes("qwen") ||
-    lower.includes("glm") ||
-    lower.includes("stepfun") ||
-    lower.includes("reasoning")
-  );
+function isProModel(model: string): boolean {
+  return model.toLowerCase().includes("pro");
 }
 
-function isMistralModel(model: string): boolean {
-  return model.toLowerCase().includes("mistral");
-}
-
-function getReasoningEffort(model: string): string {
-  const lower = model.toLowerCase();
-
-  if (lower.includes("pro")) {
-    return process.env.NVIDIA_REASONING_EFFORT_PRO ?? "high";
-  }
-
-  return process.env.NVIDIA_REASONING_EFFORT_FLASH ?? "medium";
-}
-
-function buildPayload(request: ChatRequest, stream: boolean): NvidiaPayload {
+function buildPayload(request: ChatRequest, stream: boolean): DeepSeekPayload {
   const model = request.model;
 
-  const payload: NvidiaPayload = {
+  const payload: DeepSeekPayload = {
     model,
     messages: request.messages,
-    max_tokens: Number(process.env.NVIDIA_MAX_TOKENS ?? 116384),
-    temperature: request.temperature ?? Number(process.env.NVIDIA_TEMPERATURE ?? 0.15),
-    top_p: Number(process.env.NVIDIA_TOP_P ?? 1),
-    frequency_penalty: Number(process.env.NVIDIA_FREQUENCY_PENALTY ?? 0),
-    presence_penalty: Number(process.env.NVIDIA_PRESENCE_PENALTY ?? 0),
+    max_tokens: Number(process.env.DEEPSEEK_MAX_TOKENS ?? 65536),
+    temperature: request.temperature ?? Number(process.env.DEEPSEEK_TEMPERATURE ?? 1),
+    top_p: Number(process.env.DEEPSEEK_TOP_P ?? 1),
     stream
   };
 
-  /*
-   * Mistral-style NVIDIA models should receive a plain OpenAI-compatible
-   * payload. Do NOT attach chat_template_kwargs.
-   *
-   * Example:
-   * mistralai/mistral-large-3-675b-instruct-2512
-   */
-  if (isMistralModel(model)) {
-    return payload;
-  }
+  /* DeepSeek thinking mode — enabled by default for both flash and pro.
+   * Can be disabled by setting DEEPSEEK_THINKING_ENABLED=false. */
+  const thinkingEnabled = process.env.DEEPSEEK_THINKING_ENABLED !== "false";
 
-  /*
-   * Reasoning models can receive NVIDIA-specific thinking config.
-   */
-  if (isReasoningModel(model)) {
-    payload.chat_template_kwargs = {
-      thinking: true,
-      reasoning_effort: getReasoningEffort(model)
-    };
+  if (thinkingEnabled) {
+    payload.thinking = { type: "enabled" };
+
+    payload.reasoning_effort =
+      process.env.DEEPSEEK_REASONING_EFFORT ??
+      (isProModel(model) ? "high" : "high");
   }
 
   return payload;
@@ -107,7 +72,6 @@ function extractReasoningDelta(json: any): string {
     delta.reasoning_content ??
     delta.reasoning ??
     delta.thinking ??
-    delta.thoughts ??
     ""
   );
 }
@@ -150,16 +114,16 @@ async function readErrorResponse(response: Response): Promise<string> {
   }
 }
 
-export class NvidiaProvider implements Provider {
+export class DeepSeekProvider implements Provider {
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    if (!process.env.NVIDIA_API_KEY) {
-      throw new Error("Missing NVIDIA_API_KEY");
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new Error("Missing DEEPSEEK_API_KEY");
     }
 
-    const response = await fetch(getNvidiaInvokeUrl(), {
+    const response = await fetch(getInvokeUrl(), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
         Accept: "application/json",
         "Content-Type": "application/json"
       },
@@ -168,7 +132,7 @@ export class NvidiaProvider implements Provider {
 
     if (!response.ok) {
       const errorText = await readErrorResponse(response);
-      throw new Error(`NVIDIA failed: ${response.status} ${errorText}`);
+      throw new Error(`DeepSeek failed: ${response.status} ${errorText}`);
     }
 
     const json = await response.json();
@@ -180,14 +144,14 @@ export class NvidiaProvider implements Provider {
   }
 
   async *chatStream(request: ChatRequest): AsyncIterable<ChatStreamChunk> {
-    if (!process.env.NVIDIA_API_KEY) {
-      throw new Error("Missing NVIDIA_API_KEY");
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new Error("Missing DEEPSEEK_API_KEY");
     }
 
-    const response = await fetch(getNvidiaInvokeUrl(), {
+    const response = await fetch(getInvokeUrl(), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
         Accept: "text/event-stream",
         "Content-Type": "application/json"
       },
@@ -196,11 +160,11 @@ export class NvidiaProvider implements Provider {
 
     if (!response.ok) {
       const errorText = await readErrorResponse(response);
-      throw new Error(`NVIDIA stream failed: ${response.status} ${errorText}`);
+      throw new Error(`DeepSeek stream failed: ${response.status} ${errorText}`);
     }
 
     if (!response.body) {
-      throw new Error("NVIDIA stream failed: empty response body");
+      throw new Error("DeepSeek stream failed: empty response body");
     }
 
     const reader = response.body.getReader();
@@ -247,11 +211,8 @@ export class NvidiaProvider implements Provider {
           };
         }
 
-        /*
-         * Some providers include final usage on a streamed event.
-         * Yield it as an event so executeChain can capture token usage
-         * without sending visible content to Cline.
-         */
+        /* Usage stats may arrive on a streamed event.  Yield as an event
+         * so executeChain can capture token counts. */
         if (json.usage) {
           yield {
             content: "",

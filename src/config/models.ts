@@ -20,9 +20,9 @@ export const MODELS = {
   claudeSonnet: requiredEnv("CLAUDE_SONNET"),
   claudeOpus: requiredEnv("CLAUDE_OPUS"),
 
-  deepseekFlash: requiredEnv("NVIDIA_DEEPSEEK_FLASH"),
+  deepseekFlash: envOrDefault("DEEPSEEK_FLASH", "deepseek-v4-flash"),
   minimax: requiredEnv("NVIDIA_MINIMAX"),
-  deepseekPro: requiredEnv("NVIDIA_DEEPSEEK_PRO"),
+  deepseekPro: envOrDefault("DEEPSEEK_PRO", "deepseek-v4-pro"),
   glm47: requiredEnv("NVIDIA_GLM47"),
   qwen3Coder: requiredEnv("NVIDIA_QWEN3"),
   stepFlash: requiredEnv("NVIDIA_STEP_FLASH"),

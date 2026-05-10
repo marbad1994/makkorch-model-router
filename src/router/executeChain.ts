@@ -506,7 +506,7 @@ export async function executeChain(
       );
 
       const result = await withTimeout(
-        executeModel(modelKey as any, optimizedMessages),
+        executeModel(modelKey as any, optimizedMessages, { promptCache: true }),
         timeoutMs,
         modelKey
       );
@@ -534,7 +534,7 @@ export async function executeChain(
         );
 
         const repairResult = await withTimeout(
-          executeModel(modelKey as any, repairMessages),
+          executeModel(modelKey as any, repairMessages, { promptCache: true }),
           timeoutMs,
           `${modelKey}:repair`
         );
@@ -718,7 +718,7 @@ export async function* executeChainStream(
       );
 
       const stream = withAdaptiveStreamIdleTimeout(
-        executeModelStream(modelKey as any, optimizedMessages),
+        executeModelStream(modelKey as any, optimizedMessages, { promptCache: true }),
         normalIdleTimeoutMs,
         thinkingIdleTimeoutMs,
         modelKey
@@ -813,7 +813,7 @@ export async function* executeChainStream(
         let repairCollected = "";
 
         const repairStream = withAdaptiveStreamIdleTimeout(
-          executeModelStream(modelKey as any, repairMessages),
+          executeModelStream(modelKey as any, repairMessages, { promptCache: true }),
           normalIdleTimeoutMs,
           thinkingIdleTimeoutMs,
           `${modelKey}:repair`
